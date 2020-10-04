@@ -71,6 +71,21 @@ Example response of [/ip/geo/216.58.221.238]:
 }
 ````
 
+Can input a hostname [/ip/geo/lichess.org]:
+
+````json
+{
+	"IP": "37.187.205.99",
+	"Continent": "Europe",
+	"ContinentCode": "EU",
+	"Country": "France",
+	"CountryCode": "FR",
+	"City": "",
+	"TimeZoneName": "Europe/Paris",
+	"ISPName": "OVH SAS"
+}
+```` 
+
 ## Source IP to geographic info
 
 MaxMind free [database](https://www.maxmind.com/en/accounts/404644/geoip/downloads).

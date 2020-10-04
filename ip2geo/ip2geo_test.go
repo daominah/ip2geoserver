@@ -1,6 +1,7 @@
 package ip2geo
 
 import (
+	"net"
 	"testing"
 )
 
@@ -24,5 +25,17 @@ func TestUnnamed0(t *testing.T) {
 	_, err = reader.ReadIPInfo("127.0.0.1")
 	if err == nil {
 		t.Error(err)
+	}
+}
+
+func TestLookupIPFromHost(t *testing.T) {
+	ip := LookupIPFromHost("lichess.org")
+	if net.ParseIP(ip) == nil {
+		t.Error("error unexpected nil IP")
+	}
+	ip1 := LookupIPFromHost("lichess.org11111")
+	//t.Logf(ip1)
+	if net.ParseIP(ip1) != nil {
+		t.Error("error unexpected IP, should be err no such host")
 	}
 }

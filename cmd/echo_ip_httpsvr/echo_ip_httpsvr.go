@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 
+	"net"
+
 	"github.com/daominah/echo_ip_httpsvr/ip2geo"
 	"github.com/mywrap/gofast"
 	"github.com/mywrap/httpsvr"
@@ -46,6 +48,10 @@ func handlerGeoIP() http.HandlerFunc {
 		ip0 := httpsvr.GetUrlParams(r)["ip0"]
 		if ip0 == "" {
 			ip0 = ip2geo.GetIpFromAddress(r.RemoteAddr)
+		} else { // caller can input an IP or hostname
+			if net.ParseIP(ip0) == nil {
+				ip0 = ip2geo.LookupIPFromHost(ip0)
+			}
 		}
 		geo, err := geoReader.ReadIPInfo(ip0)
 		if err != nil {

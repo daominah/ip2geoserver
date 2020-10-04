@@ -128,3 +128,24 @@ func GetIpFromAddress(hostPort string) string {
 	}
 	return hostPort[:colonIdx]
 }
+
+// LookupIPFromHost returns the first IPv4.
+// This func can return an IPv6 or an error string if not found.
+func LookupIPFromHost(hostname string) string {
+	addrs, err := net.LookupHost(hostname)
+	if err != nil {
+		return err.Error()
+	}
+	var ipv6 net.IP
+	for _, addr := range addrs {
+		ip := net.ParseIP(addr)
+		if ip == nil {
+			continue
+		}
+		if ip.To4() == nil {
+			ipv6 = ip
+		}
+		return ip.String()
+	}
+	return ipv6.String()
+}
