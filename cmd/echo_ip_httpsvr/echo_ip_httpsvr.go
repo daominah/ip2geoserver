@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/http/httputil"
 	"os"
@@ -11,60 +9,63 @@ import (
 
 	"github.com/daominah/echo_ip_httpsvr/ip2geo"
 	"github.com/mywrap/gofast"
+	"github.com/mywrap/httpsvr"
+	"github.com/mywrap/log"
 )
 
+func handlerEcho(w http.ResponseWriter, r *http.Request) {
+	log.Printf("____________________________________________________\n")
+	rDump, err := httputil.DumpRequest(r, true)
+	if err != nil {
+		w.WriteHeader(500)
+		httpsvr.Write(w, r, fmt.Sprintf("error DumpRequest: %v", err))
+		return
+	}
+	httpsvr.Write(w, r, fmt.Sprintf("echo req from %v:\n\n", r.RemoteAddr))
+	httpsvr.Write(w, r, string(rDump))
+	log.Printf("____________________________________________________\n")
+	return
+}
+
+func handlerRawIP(w http.ResponseWriter, r *http.Request) {
+	ip := ip2geo.GetIpFromAddress(r.RemoteAddr)
+	httpsvr.Write(w, r, fmt.Sprintf("%v", ip))
+	return
+}
+
+func handlerGeoIP() http.HandlerFunc {
+	prjRoot, err := gofast.GetProjectRootPath()
+	if err != nil {
+		log.Fatal(err)
+	}
+	geoReader, err := ip2geo.NewReader(prjRoot + "/ip2geo")
+	if err != nil {
+		log.Fatal(err)
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		ip0 := httpsvr.GetUrlParams(r)["ip0"]
+		if ip0 == "" {
+			ip0 = ip2geo.GetIpFromAddress(r.RemoteAddr)
+		}
+		geo, err := geoReader.ReadIPInfo(ip0)
+		if err != nil {
+			w.WriteHeader(400)
+			httpsvr.Write(w, r, fmt.Sprintf(
+				"error ReadIPInfo %v: %v", ip0, err))
+			return
+		}
+		httpsvr.WriteJson(w, r, geo)
+		return
+	}
+}
+
 func main() {
-	handler := http.NewServeMux()
-	handler.HandleFunc("/", func() http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			log.Printf("_____________________________________________\n")
-			log.Printf("begin HandleFunc echo %v\n", r.RemoteAddr)
-			rDump, err := httputil.DumpRequest(r, true)
-			if err != nil {
-				w.WriteHeader(500)
-				w.Write([]byte(fmt.Sprintf("error DumpRequest: %v", err)))
-				return
-			}
-			w.Write([]byte(fmt.Sprintf("echo req from %v:\n\n", r.RemoteAddr)))
-			w.Write(rDump)
-			log.Printf("respond to %v: %s\n", r.RemoteAddr, rDump)
-			log.Printf("end HandleFunc echo %v\n", r.RemoteAddr)
-			log.Printf("_____________________________________________\n")
-			return
-		}
-	}())
-	handler.HandleFunc("/ip", func() http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			ip := ip2geo.GetIpFromAddress(r.RemoteAddr)
-			w.Write([]byte(fmt.Sprintf("%v", ip)))
-			return
-		}
-	}())
-	handler.HandleFunc("/ip/geo", func() http.HandlerFunc {
-		prjRoot, err := gofast.GetProjectRootPath()
-		if err != nil {
-			log.Fatal(err)
-		}
-		geoReader, err := ip2geo.NewReader(prjRoot + "/ip2geo")
-		if err != nil {
-			log.Fatal(err)
-		}
-		return func(w http.ResponseWriter, r *http.Request) {
-			ip := ip2geo.GetIpFromAddress(r.RemoteAddr)
-			geo, err := geoReader.ReadIPInfo(ip)
-			if err != nil {
-				w.WriteHeader(400)
-				w.Write([]byte(err.Error()))
-			}
-			beauty, err := json.MarshalIndent(geo, "", "\t")
-			if err != nil {
-				w.WriteHeader(500)
-				w.Write([]byte(err.Error()))
-			}
-			w.Write(beauty)
-			return
-		}
-	}())
+	server := httpsvr.NewServer()
+	initedHandlerGeoIP := handlerGeoIP()
+	server.AddHandler("GET", "/ip", handlerRawIP)
+	server.AddHandler("GET", "/ip/geo", initedHandlerGeoIP)
+	server.AddHandler("GET", "/ip/geo/:ip0", initedHandlerGeoIP)
+	server.AddHandlerNotFound(handlerEcho)
 
 	listen := os.Getenv("LISTENING_PORT")
 	if listen == "" {
@@ -74,18 +75,15 @@ func main() {
 			listen = ":" + listen
 		}
 	}
-	server := &http.Server{Addr: listen, Handler: handler}
-	log.Println("echo server listening on port ", server.Addr)
-	log.Printf("example: http://127.0.0.1%v/", server.Addr)
-	log.Printf("example: http://127.0.0.1%v/ip", server.Addr)
-	log.Printf("example: http://127.0.0.1%v/ip/geo", server.Addr)
-	err := server.ListenAndServe()
+	log.Printf("echo_ip_httpsvr is listening on port %v", listen)
+	log.Printf("examples:")
+	log.Printf("http://127.0.0.1%v/", listen)
+	log.Printf("http://127.0.0.1%v/ip", listen)
+	log.Printf("http://127.0.0.1%v/ip/geo/216.58.221.238", listen)
+	log.Printf(`curl -X POST --data '{"username": "xyz", "password": "xyz"}' http://127.0.0.1%v/echo`, listen)
+	err := server.ListenAndServe(listen)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// curl 127.0.0.1:20891 --request POST --data '{"name":"Tung"}'
-	// 127.0.0.1:20891?a=5
-
 	select {}
 }

@@ -3,10 +3,8 @@ package ip2geo
 import (
 	"fmt"
 	"net"
-
-	"strings"
-
 	"path/filepath"
+	"strings"
 
 	"github.com/davecgh/go-spew/spew"
 	geoip2 "github.com/oschwald/geoip2-golang"
@@ -109,7 +107,7 @@ func init() {
 	}
 }
 
-// CheckIsPrivateIP return true if input is a private IP
+// CheckIsPrivateIP returns true if input is a private IP
 func CheckIsPrivateIP(ip net.IP) bool {
 	if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
 		return true
@@ -122,6 +120,7 @@ func CheckIsPrivateIP(ip net.IP) bool {
 	return false
 }
 
+// GetIpFromAddress removes port from the address
 func GetIpFromAddress(hostPort string) string {
 	colonIdx := strings.Index(hostPort, ":")
 	if colonIdx == -1 {
