@@ -86,6 +86,12 @@ Can input a hostname [/ip/geo/lichess.org]:
 }
 ```` 
 
-## Source IP to geographic info
+## Docker
 
-MaxMind free [database](https://www.maxmind.com/en/accounts/404644/geoip/downloads).
+Execute [build_run.sh](build_run.sh) to run a local container, default
+listen on port 20891.  
+
+## References
+
+* MaxMind free [database](https://www.maxmind.com/en/accounts/404644/geoip/downloads).
+* [Reader](https://github.com/oschwald/geoip2-golang) for  MaxMind data format

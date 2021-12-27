@@ -2,15 +2,13 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"os"
 	"strings"
 
-	"net"
-
 	"github.com/daominah/echo_ip_httpsvr/ip2geo"
-	"github.com/mywrap/gofast"
 	"github.com/mywrap/httpsvr"
 	"github.com/mywrap/log"
 )
@@ -36,18 +34,14 @@ func handlerRawIP(w http.ResponseWriter, r *http.Request) {
 }
 
 func handlerGeoIP() http.HandlerFunc {
-	prjRoot, err := gofast.GetProjectRootPath()
-	if err != nil {
-		log.Fatal(err)
-	}
-	geoReader, err := ip2geo.NewReader(prjRoot + "/ip2geo")
+	geoReader, err := ip2geo.NewDefaultReader()
 	if err != nil {
 		log.Fatal(err)
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		ip0 := httpsvr.GetUrlParams(r)["ip0"]
 		if ip0 == "" {
-			ip0 = ip2geo.GetIpFromAddress(r.RemoteAddr)
+			ip0 = ip2geo.GetIpFromAddress(r.RemoteAddr) // host:port -> host
 		} else { // caller can input an IP or hostname
 			if net.ParseIP(ip0) == nil {
 				ip0 = ip2geo.LookupIPFromHost(ip0)

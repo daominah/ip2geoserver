@@ -1,12 +1,13 @@
 package ip2geo
 
 import (
+	_ "embed"
 	"fmt"
 	"net"
+	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
 	geoip2 "github.com/oschwald/geoip2-golang"
 )
 
@@ -15,7 +16,8 @@ type Reader struct {
 	ASNDatabase  *geoip2.Reader
 }
 
-// NewReader loads IP info database from files
+// NewReader loads IP info database (MaxMind) from files in dir dataPath,
+// DEPRECATED
 func NewReader(dataPath string) (*Reader, error) {
 	var err error
 	ret := &Reader{}
@@ -32,6 +34,49 @@ func NewReader(dataPath string) (*Reader, error) {
 	return ret, nil
 }
 
+//go:embed GeoLite2-City.mmdb
+var DatabaseCity []byte
+
+//go:embed GeoLite2-ASN.mmdb
+var DatabaseASN []byte
+
+// NewReader loads IP info database (MaxMind) with Go embed
+func NewDefaultReader() (*Reader, error) {
+	var err error
+	ret := &Reader{}
+
+	tmpFileCity, err := os.CreateTemp("", "tmpFileCity")
+	if err != nil {
+		return nil, err
+	}
+	_, err = tmpFileCity.Write(DatabaseCity)
+	if err != nil {
+		return nil, err
+	}
+	tmpFileASN, err := os.CreateTemp("", "tmpFileASN")
+	if err != nil {
+		return nil, err
+	}
+	_, err = tmpFileASN.Write(DatabaseASN)
+	if err != nil {
+		return nil, err
+	}
+
+	ret.CityDatabase, err = geoip2.Open(tmpFileCity.Name())
+	if err != nil {
+		return nil, err
+	}
+	ret.ASNDatabase, err = geoip2.Open(tmpFileASN.Name())
+	if err != nil {
+		return nil, err
+	}
+
+	os.Remove(tmpFileCity.Name())
+	os.Remove(tmpFileASN.Name())
+
+	return ret, nil
+}
+
 func (r Reader) ReadIPInfo(addrIP string) (IPInfo, error) {
 	ret := IPInfo{IP: addrIP}
 	ip0 := net.ParseIP(addrIP)
@@ -44,9 +89,6 @@ func (r Reader) ReadIPInfo(addrIP string) (IPInfo, error) {
 	row, err := r.CityDatabase.City(ip0)
 	if err != nil {
 		return ret, fmt.Errorf("read city: %v", err)
-	}
-	if false {
-		spew.Dump(row)
 	}
 	ret.Continent = row.Continent.Names[LangEN]
 	ret.ContinentCode = row.Continent.Code
@@ -144,6 +186,7 @@ func LookupIPFromHost(hostname string) string {
 		}
 		if ip.To4() == nil {
 			ipv6 = ip
+			continue
 		}
 		return ip.String()
 	}

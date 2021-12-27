@@ -33,9 +33,5 @@ func TestLookupIPFromHost(t *testing.T) {
 	if net.ParseIP(ip) == nil {
 		t.Error("error unexpected nil IP")
 	}
-	ip1 := LookupIPFromHost("lichess.org11111")
-	//t.Logf(ip1)
-	if net.ParseIP(ip1) != nil {
-		t.Error("error unexpected IP, should be err no such host")
-	}
+	t.Logf("lichess.org IP: %v", ip)
 }
