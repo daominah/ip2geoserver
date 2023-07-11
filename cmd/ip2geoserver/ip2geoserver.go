@@ -15,6 +15,7 @@ import (
 
 func handlerEcho(w http.ResponseWriter, r *http.Request) {
 	log.Printf("____________________________________________________\n")
+	r.URL.Query()
 	rDump, err := httputil.DumpRequest(r, true)
 	if err != nil {
 		w.WriteHeader(500)
@@ -22,6 +23,7 @@ func handlerEcho(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpsvr.Write(w, r, fmt.Sprintf("echo req from %v:\n\n", r.RemoteAddr))
+	httpsvr.Write(w, r, fmt.Sprintf("parsed query in URL %#v:\n\n", r.URL.Query()))
 	httpsvr.Write(w, r, string(rDump))
 	log.Printf("____________________________________________________\n")
 	return
