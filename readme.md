@@ -90,6 +90,11 @@ Can input a hostname [/ip/geo/lichess.org]:
 
 Execute [build_run.sh](build_run.sh) to run a local container, default
 listen on port 20891.  
+OR run with prebuilt container:
+
+````bash
+docker run -dit --restart always --name ip2geoserver -p 20891:20891 daominah/ip2geoserver
+````
 
 ## References
 
